@@ -13,10 +13,37 @@
 #include <stdio.h>
 /*为了可以在其他平台也可以使用 右键项目属性 选择链接器 附加依赖项 将ws2_32.lib 添加进去就行 这样就不需要 下面这些 */
 #pragma  comment(lib,"ws2_32.lib")
-struct DataPage
+enum CMD
 {
-	int age;
-	char name[32];
+	CMD_LOGIN,
+	CMD_LOGINOUT,
+	CMD_ERROR,
+};
+struct DataHeader
+{
+	short cmd;//命令
+	short dataLength;//数据长度
+
+};
+//登录
+struct Login
+{
+	char userName[32];
+	char passWord[32];
+};
+//
+struct LoginResult
+{
+	int result;
+};
+//登出
+struct LoginOut
+{
+	char userName[32];
+};
+struct LoginOutResult
+{
+	int result;
 };
 int main()
 {
@@ -58,21 +85,41 @@ int main()
 			printf("收到exit命令,任务结束");
 			break;
 		}
+		else if(0==strcmp(buf,"login"))
+		{
+			Login login;
+			strcpy(login.passWord, "123456");
+			strcpy(login.userName, "小强");
+			DataHeader dh = { CMD_LOGIN,sizeof(login) };
+			//5.向服务端发送请求
+			send(sock, (const char*)&dh, sizeof(dh), 0);
+			send(sock, (const char*)&login, sizeof(login), 0);
+			//6.接收服务端返回的数据
+			DataHeader retHeader;
+			LoginResult loginRet;
+			recv(sock, (char *)&retHeader, sizeof(retHeader), 0);
+			recv(sock, (char*)&loginRet, sizeof(loginRet), 0);
+			printf("LoginResult %d\n", loginRet.result);
+		}
+		else if (0 == strcmp(buf, "loginOut"))
+		{
+			LoginOut loginOut;
+			strcpy(loginOut.userName, "小强");
+			DataHeader dh = { CMD_LOGINOUT,sizeof(loginOut) };
+			//5.向服务端发送请求
+			send(sock, (const char*)&dh, sizeof(dh), 0);
+			send(sock, (const char*)&loginOut, sizeof(loginOut), 0);
+			//6.接收服务端返回的数据
+			DataHeader retHeader;
+			LoginOutResult loginRet;
+			recv(sock, (char*)&retHeader, sizeof(retHeader), 0);
+			recv(sock, (char*)&loginRet, sizeof(loginRet), 0);
+			printf("LoginOutResult %d\n", loginRet.result);
+		}
 		else
 		{
-			//5.向服务端发送请求
-			send(sock, buf, strlen(buf)+1, 0);
+			printf("收到不支持命令,请重新输入.\n");
 		}
-		//6.接收服务端信息
-		char msg[256] = "";
-		int nlen = recv(sock, msg, sizeof(msg), 0);
-		printf("接收到数据长度为%d\n", nlen);
-		if (nlen>0)
-		{
-			struct DataPage* dp = (struct DataPage*)msg;
-			printf("数据为 年龄为:%d  姓名为:%s\n", dp->age,dp->name);
-		}
-
 	}
 	//7.关闭套接字
 	closesocket(sock);

@@ -13,10 +13,37 @@
 #include <stdio.h>
 /*为了可以在其他平台也可以使用 右键项目属性 选择链接器 附加依赖项 将ws2_32.lib 添加进去就行 这样就不需要 下面这些 */
 #pragma  comment(lib,"ws2_32.lib")
-struct DataPage
+enum CMD
 {
-	int age;
-	char name[32];
+	CMD_LOGIN,
+	CMD_LOGINOUT,
+	CMD_ERROR,
+};
+struct DataHeader
+{
+	short cmd;//命令
+	short dataLength;//数据长度
+
+};
+//登录
+struct Login
+{
+	char userName[32];
+	char passWord[32];
+};
+//
+struct LoginResult
+{
+	int result;
+};
+//登出
+struct LoginOut
+{
+	char userName[32];
+};
+struct LoginOutResult
+{
+	int result;
 };
 int main()
 {
@@ -64,28 +91,47 @@ int main()
 		printf("ERROR,等待接受客户端连接失败...\n");
 	}
 	printf("新客户端加入：socket=%d\n", (int)_clientSock);
-	char cmBuf[128] = "";
 	while (true)
 	{
+		DataHeader header;
 		//5.接收客户端请求数据  最后一个设置为0
-		int nlen = recv(_clientSock, cmBuf, sizeof(cmBuf), 0);//返回值是接收的长度
+		int nlen = recv(_clientSock,(char *)&header, sizeof(header), 0);//返回值是接收的长度
 		if (nlen<=0)
 		{
 			printf("客户端已退出,任务结束\n");
 			break;
 		}
-		printf("收到命令%s\n", cmBuf);
-		//处理请求
-		if (0==strcmp(cmBuf,"getInfo"))
+		printf("收到命令%d\n", header.cmd);
+		switch (header.cmd)
 		{
-			struct DataPage dp = { 80,"小强" };
-			send(_clientSock,(const char*)&dp,sizeof(dp), 0);
+		case CMD_LOGIN: {
+			Login login;
+			recv(_clientSock, (char*)&login, sizeof(login), 0);
+			//忽略 判断用户名密码是否正确
+			printf("名字是=%s 密码是%s \n", login.userName, login.passWord);
+			LoginResult loginRet = { 1 };
+			send(_clientSock, (char*)&header, sizeof(DataHeader), 0);
+			send(_clientSock, (const char*)&loginRet, sizeof(loginRet), 0);
 		}
-		else
-		{
-			char buf[] = "?????";
-			send(_clientSock, buf, strlen(buf) + 1, 0);
+				break;
+		case  CMD_LOGINOUT: {
+			LoginOut loginOut;
+			recv(_clientSock, (char*)&loginOut, sizeof(loginOut), 0);
+			//忽略 判断用户名密码是否正确
+			printf("名字是=%s   \n", loginOut.userName);
+			LoginOutResult loginOutRet = { 1 };
+			send(_clientSock, (char*)&header, sizeof(DataHeader), 0);
+			send(_clientSock, (const char*)&loginOutRet, sizeof(loginOutRet), 0);
 		}
+			break;
+		default: {
+			header.cmd = CMD_ERROR;
+			header.dataLength = 0;
+			send(_clientSock, (char*)&header, sizeof(DataHeader), 0);
+		}
+			break;
+		}
+		
 	}
 	//7.关闭套接字
 	closesocket(sock);
