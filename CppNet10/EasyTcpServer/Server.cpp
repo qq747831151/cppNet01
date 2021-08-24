@@ -16,7 +16,9 @@
 enum CMD
 {
 	CMD_LOGIN,
+	CMD_LOGIN_RESULT,
 	CMD_LOGINOUT,
+	CMD_LOGINOUT_RESULT,
 	CMD_ERROR,
 };
 struct DataHeader
@@ -26,23 +28,45 @@ struct DataHeader
 
 };
 //登录
-struct Login
+struct Login:public DataHeader
 {
+	Login()
+	{
+		dataLength = sizeof(Login);
+		cmd = CMD_LOGIN;
+	}
 	char userName[32];
 	char passWord[32];
 };
 //
-struct LoginResult
+struct LoginResult:public DataHeader
 {
+	LoginResult()
+	{
+		dataLength = sizeof(LoginResult);
+		cmd = CMD_LOGIN_RESULT;
+		result = 1;
+	}
 	int result;
 };
 //登出
-struct LoginOut
+struct LoginOut:public DataHeader
 {
+	LoginOut()
+	{
+		dataLength = sizeof(LoginOut);
+		cmd = CMD_LOGINOUT;
+	}
 	char userName[32];
 };
-struct LoginOutResult
+struct LoginOutResult:public DataHeader
 {
+	LoginOutResult()
+	{
+		dataLength = sizeof(LoginOutResult);
+		cmd = CMD_LOGINOUT_RESULT;
+		result = 1;
+	}
 	int result;
 };
 int main()
@@ -106,21 +130,19 @@ int main()
 		{
 		case CMD_LOGIN: {
 			Login login;
-			recv(_clientSock, (char*)&login, sizeof(login), 0);
+			recv(_clientSock, (char*)&login+sizeof(DataHeader), sizeof(Login)-sizeof(DataHeader), 0);
 			//忽略 判断用户名密码是否正确
 			printf("名字是=%s 密码是%s \n", login.userName, login.passWord);
-			LoginResult loginRet = { 1 };
-			send(_clientSock, (char*)&header, sizeof(DataHeader), 0);
+			LoginResult loginRet;
 			send(_clientSock, (const char*)&loginRet, sizeof(loginRet), 0);
 		}
 				break;
 		case  CMD_LOGINOUT: {
 			LoginOut loginOut;
-			recv(_clientSock, (char*)&loginOut, sizeof(loginOut), 0);
+			recv(_clientSock, (char*)&loginOut+sizeof(DataHeader), sizeof(loginOut)-sizeof(DataHeader), 0);
 			//忽略 判断用户名密码是否正确
 			printf("名字是=%s   \n", loginOut.userName);
-			LoginOutResult loginOutRet = { 1 };
-			send(_clientSock, (char*)&header, sizeof(DataHeader), 0);
+			LoginOutResult loginOutRet;
 			send(_clientSock, (const char*)&loginOutRet, sizeof(loginOutRet), 0);
 		}
 			break;

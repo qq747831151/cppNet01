@@ -16,7 +16,9 @@
 enum CMD
 {
 	CMD_LOGIN,
+	CMD_LOGIN_RESULT,
 	CMD_LOGINOUT,
+	CMD_LOGINOUT_RESULT,
 	CMD_ERROR,
 };
 struct DataHeader
@@ -26,23 +28,45 @@ struct DataHeader
 
 };
 //登录
-struct Login
+struct Login :public DataHeader
 {
+	Login()
+	{
+		dataLength = sizeof(Login);
+		cmd = CMD_LOGIN;
+	}
 	char userName[32];
 	char passWord[32];
 };
 //
-struct LoginResult
+struct LoginResult :public DataHeader
 {
+	LoginResult()
+	{
+		dataLength = sizeof(LoginResult);
+		cmd = CMD_LOGIN_RESULT;
+		result = 1;
+	}
 	int result;
 };
 //登出
-struct LoginOut
+struct LoginOut :public DataHeader
 {
+	LoginOut()
+	{
+		dataLength = sizeof(LoginOut);
+		cmd = CMD_LOGINOUT;
+	}
 	char userName[32];
 };
-struct LoginOutResult
+struct LoginOutResult :public DataHeader
 {
+	LoginOutResult()
+	{
+		dataLength = sizeof(LoginOutResult);
+		cmd = CMD_LOGINOUT_RESULT;
+		result = 1;
+	}
 	int result;
 };
 int main()
@@ -90,14 +114,10 @@ int main()
 			Login login;
 			strcpy(login.passWord, "123456");
 			strcpy(login.userName, "小强");
-			DataHeader dh = { CMD_LOGIN,sizeof(login) };
 			//5.向服务端发送请求
-			send(sock, (const char*)&dh, sizeof(dh), 0);
 			send(sock, (const char*)&login, sizeof(login), 0);
 			//6.接收服务端返回的数据
-			DataHeader retHeader;
 			LoginResult loginRet;
-			recv(sock, (char *)&retHeader, sizeof(retHeader), 0);
 			recv(sock, (char*)&loginRet, sizeof(loginRet), 0);
 			printf("LoginResult %d\n", loginRet.result);
 		}
@@ -105,14 +125,10 @@ int main()
 		{
 			LoginOut loginOut;
 			strcpy(loginOut.userName, "小强");
-			DataHeader dh = { CMD_LOGINOUT,sizeof(loginOut) };
 			//5.向服务端发送请求
-			send(sock, (const char*)&dh, sizeof(dh), 0);
 			send(sock, (const char*)&loginOut, sizeof(loginOut), 0);
 			//6.接收服务端返回的数据
-			DataHeader retHeader;
 			LoginOutResult loginRet;
-			recv(sock, (char*)&retHeader, sizeof(retHeader), 0);
 			recv(sock, (char*)&loginRet, sizeof(loginRet), 0);
 			printf("LoginOutResult %d\n", loginRet.result);
 		}
