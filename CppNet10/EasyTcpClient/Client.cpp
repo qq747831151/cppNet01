@@ -1,3 +1,10 @@
+/****************************************************
+	文件：Client.cpp
+	作者：苏福龙
+	邮箱: 747831151@qq.com
+	日期：2021/08/24 20:26   	
+	功能：客户端
+*****************************************************/
 #pragma once
 #define  WIN32_LEAN_AND_MEAN  //不影响 windows.h 和 WinSock2.h 前后顺序 
 #define _WINSOCK_DEPRECATED_NO_WARNINGS //这个用于 inet_ntoa   可以在右击项目属性 C/C++ 预处理里面 预处理定义添加
@@ -6,7 +13,11 @@
 #include <stdio.h>
 /*为了可以在其他平台也可以使用 右键项目属性 选择链接器 附加依赖项 将ws2_32.lib 添加进去就行 这样就不需要 下面这些 */
 #pragma  comment(lib,"ws2_32.lib")
-
+struct DataPage
+{
+	int age;
+	char name[32];
+};
 int main()
 {
 	/*启动socket网络环境 2.x环境*/
@@ -58,7 +69,8 @@ int main()
 		printf("接收到数据长度为%d\n", nlen);
 		if (nlen>0)
 		{
-			printf("数据为:%s\n", msg);
+			struct DataPage* dp = (struct DataPage*)msg;
+			printf("数据为 年龄为:%d  姓名为:%s\n", dp->age,dp->name);
 		}
 
 	}

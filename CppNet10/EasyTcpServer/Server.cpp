@@ -13,6 +13,11 @@
 #include <stdio.h>
 /*为了可以在其他平台也可以使用 右键项目属性 选择链接器 附加依赖项 将ws2_32.lib 添加进去就行 这样就不需要 下面这些 */
 #pragma  comment(lib,"ws2_32.lib")
+struct DataPage
+{
+	int age;
+	char name[32];
+};
 int main()
 {
 	/*启动socket网络环境 2.x环境*/
@@ -71,15 +76,10 @@ int main()
 		}
 		printf("收到命令%s\n", cmBuf);
 		//处理请求
-		if (0==strcmp(cmBuf,"getName"))
+		if (0==strcmp(cmBuf,"getInfo"))
 		{
-			char buf[] = "我叫小强";
-			send(_clientSock, buf, strlen(buf)+1, 0);
-		}
-		else if(0==strcmp(cmBuf,"getAge"))
-		{
-			char buf[] = "我18岁";
-			send(_clientSock, buf, strlen(buf) + 1, 0);
+			struct DataPage dp = { 80,"小强" };
+			send(_clientSock,(const char*)&dp,sizeof(dp), 0);
 		}
 		else
 		{
