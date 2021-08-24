@@ -114,41 +114,45 @@ int main()
 	{
 		printf("ERROR,等待接受客户端连接失败...\n");
 	}
+
 	printf("新客户端加入：socket=%d\n", (int)_clientSock);
 	while (true)
 	{
-		DataHeader header;
-		//5.接收客户端请求数据  最后一个设置为0
-		int nlen = recv(_clientSock,(char *)&header, sizeof(header), 0);//返回值是接收的长度
+		char szRecv[4096] = {};//缓冲区
+		//5.接收客户端请求数据  数据存到szRecv中第三个参数可接收得最大长度 最后一个设置为0
+		int nlen = recv(_clientSock,szRecv,sizeof(DataHeader),0);//返回值是接收的长度
 		if (nlen<=0)
 		{
 			printf("客户端已退出,任务结束\n");
 			break;
 		}
-		printf("收到命令%d\n", header.cmd);
-		switch (header.cmd)
+		DataHeader* header=(DataHeader*)szRecv;
+		switch (header->cmd)
 		{
 		case CMD_LOGIN: {
-			Login login;
-			recv(_clientSock, (char*)&login+sizeof(DataHeader), sizeof(Login)-sizeof(DataHeader), 0);
+			//我们进来这里面 我们前面收到消息头的数据  那么接下来我们要接收的登录消息的数据了  我们第二个参数要加上消息头的地址 就可以从那个位置开始接收数据了  
+			//第三个数据 我们接收的数据长度要减去消息头的长度   header->dataLength是总的长度 sizeof(DataHeader)消息头的长度
+			recv(_clientSock, szRecv+sizeof(DataHeader), header->dataLength-sizeof(DataHeader), 0);
+			Login* login=(Login*)szRecv;
 			//忽略 判断用户名密码是否正确
-			printf("名字是=%s 密码是%s \n", login.userName, login.passWord);
+			printf("名字是=%s 密码是%s \n", login->userName, login->passWord);
 			LoginResult loginRet;
 			send(_clientSock, (const char*)&loginRet, sizeof(loginRet), 0);
 		}
 				break;
 		case  CMD_LOGINOUT: {
-			LoginOut loginOut;
-			recv(_clientSock, (char*)&loginOut+sizeof(DataHeader), sizeof(loginOut)-sizeof(DataHeader), 0);
+		
+			recv(_clientSock, szRecv+sizeof(DataHeader), header->dataLength-sizeof(DataHeader), 0);
+			LoginOut* loginOut=(LoginOut*)szRecv;
 			//忽略 判断用户名密码是否正确
-			printf("名字是=%s   \n", loginOut.userName);
+			printf("名字是=%s   \n", loginOut->userName);
 			LoginOutResult loginOutRet;
 			send(_clientSock, (const char*)&loginOutRet, sizeof(loginOutRet), 0);
 		}
 			break;
 		default: {
-			header.cmd = CMD_ERROR;
-			header.dataLength = 0;
+			header->cmd = CMD_ERROR;
+			header->dataLength = 0;
 			send(_clientSock, (char*)&header, sizeof(DataHeader), 0);
 		}
 			break;
