@@ -21,6 +21,7 @@ enum CMD
 	CMD_LOGINOUT,
 	CMD_LOGINOUT_RESULT,
 	CMD_ERROR,
+	CMD_NEWUSER,
 };
 struct DataHeader
 {
@@ -70,6 +71,16 @@ struct LoginOutResult:public DataHeader
 	}
 	int result;
 };
+struct LoginNewUser :public DataHeader
+{
+	LoginNewUser()
+	{
+		dataLength = sizeof(LoginNewUser);
+		cmd = CMD_NEWUSER;
+		sock = 0;
+	}
+	int sock;
+};
 std::vector<SOCKET> g_clients;
 
 //处理
@@ -80,7 +91,7 @@ int Processor(SOCKET clientSockt)
 	int nlen = recv(clientSockt, szRecv, sizeof(DataHeader), 0);//返回值是接收的长度
 	if (nlen <= 0)
 	{
-		printf("客户端已退出,任务结束\n");
+		printf("客户端<Socket=%d>已退出,任务结束\n",clientSockt);
 		return -1;;
 	}
 	DataHeader* header = (DataHeader*)szRecv;
@@ -194,8 +205,17 @@ int main()
 			{
 				printf("ERROR,等待接受客户端连接失败...\n");
 			}
-			printf("新客户端加入：socket=%d\n", (int)_clientSock);
+			//如果有其他客户端加入 就向其他现有的客户端发送  这个很消耗性能
+			/*for (int i = g_clients.size() - 1; i >= 0; i--)
+			{
+				LoginNewUser loginNewUser;
+				loginNewUser.sock = _clientSock;
+				send(g_clients[i], (const char*)&loginNewUser, sizeof(LoginNewUser), 0);
+			}*/
+
 			g_clients.push_back(_clientSock);
+			printf("新客户端加入：socket=%d\n", (int)_clientSock);
+			
 
 		}
 		// 通信, 有客户端发送数据过来

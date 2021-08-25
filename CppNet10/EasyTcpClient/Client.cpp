@@ -20,6 +20,7 @@ enum CMD
 	CMD_LOGINOUT,
 	CMD_LOGINOUT_RESULT,
 	CMD_ERROR,
+	CMD_NEWUSER,
 };
 struct DataHeader
 {
@@ -69,6 +70,67 @@ struct LoginOutResult :public DataHeader
 	}
 	int result;
 };
+struct LoginNewUser :public DataHeader
+{
+	LoginNewUser()
+	{
+		dataLength = sizeof(LoginNewUser);
+		cmd = CMD_NEWUSER;
+		sock = 0;
+	}
+	int sock;
+};
+//处理
+int Processor(SOCKET clientSockt)
+{
+	char szRecv[4096] = {};//缓冲区
+		//5.接收客户端请求数据  数据存到szRecv中第三个参数可接收得最大长度 最后一个设置为0
+	int nlen = recv(clientSockt, szRecv, sizeof(DataHeader), 0);//返回值是接收的长度
+	if (nlen <= 0)
+	{
+		printf("客户端已退出,任务结束\n");
+		return -1;;
+	}
+	DataHeader* header = (DataHeader*)szRecv;
+	switch (header->cmd)
+	{
+	case CMD_LOGIN: {
+		//我们进来这里面 我们前面收到消息头的数据  那么接下来我们要接收的登录消息的数据了  我们第二个参数要加上消息头的地址 就可以从那个位置开始接收数据了  
+		//第三个数据 我们接收的数据长度要减去消息头的长度   header->dataLength是总的长度 sizeof(DataHeader)消息头的长度
+		recv(clientSockt, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
+		Login* login = (Login*)szRecv;
+		//忽略 判断用户名密码是否正确
+		printf("名字是=%s 密码是%s \n", login->userName, login->passWord);
+		LoginResult loginRet;
+		send(clientSockt, (const char*)&loginRet, sizeof(loginRet), 0);
+	}
+				  break;
+	case  CMD_LOGINOUT: {
+
+		recv(clientSockt, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
+		LoginOut* loginOut = (LoginOut*)szRecv;
+		//忽略 判断用户名密码是否正确
+		printf("名字是=%s   \n", loginOut->userName);
+		LoginOutResult loginOutRet;
+		send(clientSockt, (const char*)&loginOutRet, sizeof(loginOutRet), 0);
+	}
+					  break;
+	case  CMD_NEWUSER:
+	{
+		
+		recv(clientSockt, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
+		LoginNewUser* loginNewUser = (LoginNewUser*)&szRecv;
+		printf("其他的客户端Socket=%d\n", loginNewUser->sock);
+	}
+	break;
+	default: {
+		header->cmd = CMD_ERROR;
+		header->dataLength = 0;
+		send(clientSockt, (char*)&header, sizeof(DataHeader), 0);
+	}
+		   break;
+	}
+}
 int main()
 {
 	/*启动socket网络环境 2.x环境*/
@@ -100,42 +162,43 @@ int main()
 	}
 	while (true)
 	{
-		//3.输入请求
+		fd_set fd_read;
+		FD_ZERO(&fd_read);
+		FD_SET(sock, &fd_read);
+		struct timeval time;
+		time.tv_sec = 0;
+		time.tv_usec = 0;
+		int ret= select(sock, &fd_read, NULL, NULL, &time);
+		if (ret<0)
+		{
+			printf("select, 任务结束\n");
+			break;
+		}
+		//有发消息过来
+		if (FD_ISSET(sock,&fd_read))
+		{
+			FD_CLR(sock, &fd_read);
+			if (-1==Processor(sock))
+			{
+				printf("select 任务结束\n");
+				break;
+			}
+		}
+		//printf("空余时间处理其他业务\n");
+		////3.输入请求
 		char buf[] = "";
 		scanf("%s", buf);
-		//4.处理请求命令
+		//4.处理命令
 		if (0==strcmp(buf,"exit"))
 		{
 			printf("收到exit命令,任务结束");
 			break;
 		}
-		else if(0==strcmp(buf,"login"))
-		{
-			Login login;
-			strcpy(login.passWord, "123456");
-			strcpy(login.userName, "小强");
-			//5.向服务端发送请求
-			send(sock, (const char*)&login, sizeof(login), 0);
-			//6.接收服务端返回的数据
-			LoginResult loginRet;
-			recv(sock, (char*)&loginRet, sizeof(loginRet), 0);
-			printf("LoginResult %d\n", loginRet.result);
-		}
-		else if (0 == strcmp(buf, "loginOut"))
-		{
-			LoginOut loginOut;
-			strcpy(loginOut.userName, "小强");
-			//5.向服务端发送请求
-			send(sock, (const char*)&loginOut, sizeof(loginOut), 0);
-			//6.接收服务端返回的数据
-			LoginOutResult loginRet;
-			recv(sock, (char*)&loginRet, sizeof(loginRet), 0);
-			printf("LoginOutResult %d\n", loginRet.result);
-		}
-		else
-		{
-			printf("收到不支持命令,请重新输入.\n");
-		}
+		Login login;
+		strcpy(login.userName, "sfl");
+		strcpy(login.passWord, "123");
+		send(sock, (char*)&login, sizeof(login), 0);
+		Sleep(1000);
 	}
 	//7.关闭套接字
 	closesocket(sock);
