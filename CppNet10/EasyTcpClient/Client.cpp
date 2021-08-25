@@ -13,6 +13,7 @@
 #include <stdio.h>
 /*为了可以在其他平台也可以使用 右键项目属性 选择链接器 附加依赖项 将ws2_32.lib 添加进去就行 这样就不需要 下面这些 */
 #pragma  comment(lib,"ws2_32.lib")
+#include <thread>
 enum CMD
 {
 	CMD_LOGIN,
@@ -131,6 +132,40 @@ int Processor(SOCKET clientSockt)
 		   break;
 	}
 }
+bool g_bExit = true;//线程退出
+//这个负责发送数据
+void cmdThread(SOCKET sock)
+{
+	while (true)
+	{
+		////3.输入请求
+		char buf[] = "";
+		scanf("%s", buf);
+		//4.处理命令
+		if (0 == strcmp(buf, "exit"))
+		{
+			printf("收到exit命令,任务结束");
+			g_bExit = false;
+			break;
+		}
+		else if(0 == strcmp(buf, "login"))
+		{
+			Login login;
+			strcpy(login.userName, "sfl");
+			strcpy(login.passWord, "123");
+			send(sock, (char*)&login, sizeof(login), 0);
+		}
+		else if(0 == strcmp(buf, "loginOut"))
+		{
+			LoginOut loginOut;
+			strcpy(loginOut.userName, "sfl");
+			send(sock, (char*)&loginOut, sizeof(loginOut), 0);
+		}
+		
+		Sleep(1000);
+	}
+	
+}
 int main()
 {
 	/*启动socket网络环境 2.x环境*/
@@ -160,7 +195,10 @@ int main()
 	{
 		printf("TURE,连接服务器connect成功...\n");
 	}
-	while (true)
+	//启动线程
+	std::thread t1(cmdThread, sock);
+	t1.detach();//线程分离
+	while (g_bExit)
 	{
 		fd_set fd_read;
 		FD_ZERO(&fd_read);
@@ -185,20 +223,7 @@ int main()
 			}
 		}
 		//printf("空余时间处理其他业务\n");
-		////3.输入请求
-		char buf[] = "";
-		scanf("%s", buf);
-		//4.处理命令
-		if (0==strcmp(buf,"exit"))
-		{
-			printf("收到exit命令,任务结束");
-			break;
-		}
-		Login login;
-		strcpy(login.userName, "sfl");
-		strcpy(login.passWord, "123");
-		send(sock, (char*)&login, sizeof(login), 0);
-		Sleep(1000);
+	
 	}
 	//7.关闭套接字
 	closesocket(sock);

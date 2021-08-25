@@ -89,12 +89,12 @@ int Processor(SOCKET clientSockt)
 	char szRecv[4096] = {};//缓冲区
 		//5.接收客户端请求数据  数据存到szRecv中第三个参数可接收得最大长度 最后一个设置为0
 	int nlen = recv(clientSockt, szRecv, sizeof(DataHeader), 0);//返回值是接收的长度
+	DataHeader* header = (DataHeader*)szRecv;
 	if (nlen <= 0)
 	{
 		printf("客户端<Socket=%d>已退出,任务结束\n",clientSockt);
 		return -1;;
 	}
-	DataHeader* header = (DataHeader*)szRecv;
 	switch (header->cmd)
 	{
 	case CMD_LOGIN: {
@@ -189,7 +189,7 @@ int main()
 			break;
 		}
 		// 判断fd对应的标志位到底是0还是1, 返回值: fd对应的标志位的值, 0, 返回0, 1->返回1
-		//有新连接
+		//有新连接 判断描述符(socket)是否在集合中
 		if (FD_ISSET(sock,&fd_read))
 		{
 			FD_CLR(sock, &fd_read); //将参数文件描述符fd对应的标志位, 设置为0
@@ -205,7 +205,9 @@ int main()
 			{
 				printf("ERROR,等待接受客户端连接失败...\n");
 			}
-			//如果有其他客户端加入 就向其他现有的客户端发送  这个很消耗性能
+			else
+			{
+				//如果有其他客户端加入 就向其他现有的客户端发送  这个很消耗性能
 			/*for (int i = g_clients.size() - 1; i >= 0; i--)
 			{
 				LoginNewUser loginNewUser;
@@ -213,12 +215,12 @@ int main()
 				send(g_clients[i], (const char*)&loginNewUser, sizeof(LoginNewUser), 0);
 			}*/
 
-			g_clients.push_back(_clientSock);
-			printf("新客户端加入：socket=%d\n", (int)_clientSock);
+				g_clients.push_back(_clientSock);
+				printf("新客户端加入：socket=%d\n", (int)_clientSock);
+			}
 			
-
 		}
-		// 通信, 有客户端发送数据过来
+		// 通信, 有客户端发送数据过来  在windows中 fd_read.fd_count 认为是保留发生事件的socket的数量
 		for (int i = 0; i < fd_read.fd_count; i++)
 		{
 			if (-1==Processor(fd_read.fd_array[i]))
@@ -232,6 +234,11 @@ int main()
 			}
 		}
 		
+	}
+	//关闭客户端的socket
+	for (int i = g_clients.size()-1; i >=0; i--)
+	{
+		closesocket(g_clients[i]);
 	}
 	//7.关闭套接字
 	closesocket(sock);
