@@ -86,11 +86,11 @@ public:
 		 int ret = connect(_sock, (sockaddr*)&_sin, sizeof(_sin));
 		 if (ret == -1)
 		 {
-			 printf("ERROR,<socket=%d>连接服务器connect失败...\n",_sock);
+			 printf("ERROR,<socket=%d><port=%d>连接服务器connect失败...\n",_sock,port);
 		 }
 		 else
 		 {
-			 printf("TURE,<socket=%d>连接服务器connect成功...\n",_sock);
+			 printf("TURE,<socket=%d> <port=%d>连接服务器connect成功...\n",_sock,port);
 		 }
 		 return ret;
 	 }
