@@ -12,8 +12,7 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS //这个用于 inet_ntoa   可以在右击项目属性 C/C++ 预处理里面 预处理定义添加
 #include <WinSock2.h>
 #include<windows.h>
-/*为了可以在其他平台也可以使用 右键项目属性 选择链接器 附加依赖项 将ws2_32.lib 添加进去就行 这样就不需要 下面这些 */
-#pragma  comment(lib,"ws2_32.lib")
+
 
 #else
 
@@ -26,17 +25,13 @@
 #include <sys/time.h>
 #include<pthread.h>
 #include <arpa/inet.h>
-#include<sys/wait.h>
-#include<sys/mman.h>
-#include <sys/select.h>
-#include <poll.h>
-#include <sys/epoll.h>
-#include <errno.h>
 
-#endif
 #define SOCKET int
 #define INVALID_SOCKET  (SOCKET)(~0)
 #define SOCKET_ERROR            (-1)
+#endif
+/*为了可以在其他平台也可以使用 右键项目属性 选择链接器 附加依赖项 将ws2_32.lib 添加进去就行 这样就不需要 下面这些 */
+#pragma  comment(lib,"ws2_32.lib")
 #include <stdio.h>
 #include <thread>
 enum CMD
