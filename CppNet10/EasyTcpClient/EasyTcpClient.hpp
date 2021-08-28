@@ -110,6 +110,7 @@ public:
 			 _sock = INVALID_SOCKET;
 		 }
 	 }
+	 int nCount = 0;
 	 /*查询网络消息*/
 	 bool OnRun()
 	 {
@@ -119,7 +120,7 @@ public:
 			 FD_ZERO(&fd_read);
 			 FD_SET(_sock, &fd_read);
 			 struct timeval time;
-			 time.tv_sec = 0;
+			 time.tv_sec = 1;
 			 time.tv_usec = 0;
 			 int ret = select(_sock + 1, &fd_read, NULL, NULL, &time);
 			 if (ret < 0)
@@ -146,28 +147,64 @@ public:
 	 {
 		 return _sock != INVALID_SOCKET;
 	 }
+
+	 //缓冲区区域最小单元大小
+#define  RECV_BUFF_SIZE 10240
+	 //接收缓冲区
+	 char szRecv[RECV_BUFF_SIZE] = {};
+	 //第二缓冲区  消息缓冲区
+	 char szMsg[RECV_BUFF_SIZE * 10] = {};
+	 //消息缓冲的数据尾部位置
+	 int LastPos = 0;
+
 	 /*接收数据 处理粘包 拆包*/
 	 int RecvData(SOCKET clientSock)
 	 {
-		 char szRecv[4096] = {};//缓冲区
 		//5.接收客户端请求数据  数据存到szRecv中第三个参数可接收得最大长度 最后一个设置为0
-		 int nlen = (int)recv(clientSock, szRecv, sizeof(DataHeader), 0);//返回值是接收的长度  MAC修改的地方
+		 int nlen = (int)recv(clientSock, szRecv, RECV_BUFF_SIZE, 0);//返回值是接收的长度  MAC修改的地方
 		 DataHeader* header = (DataHeader*)szRecv;
 		 if (nlen <= 0)
 		 {
 			 printf("与服务端断开连接,任务结束\n");
 			 return -1;;
 		 }
-		
+		 //将收取的数据拷贝到消息缓冲区
+		 memcpy(szMsg + LastPos, szRecv, nlen);
+		 //消息缓冲区的数据尾部位置后移
+		 LastPos += nlen;
+
+		 //解决粘包问题
+		 //判断消息缓冲区的数据长度是的大于消息头DataHeader的长度
+		 while (LastPos>=sizeof(DataHeader))
+		 {
+			 //这时就可以知道当前消息的长度
+			 DataHeader* header = (DataHeader*)szMsg;
+			 //判断消息缓冲的数据长度大于消息长度
+			 if (LastPos>=header->dataLength)
+			 {
+				 //剩余未处理的消息缓冲区数据的长度
+				 int nSize = LastPos - header->dataLength;
+				 //处理网络消息
+				 OnNetMsg(header);
+				 //将消息缓冲区剩余未处理数据前移
+				 memcpy(szMsg, szMsg + header->dataLength, nSize);
+				 //消息缓冲区的数据尾部位置前移
+				 LastPos = nSize;
+			 }
+			 else
+			 {
+				 //消息缓冲区剩余数据 不够一条完整的消息
+				 break;
+			 }
+		 }
+		 return 1;
 		
 		 // 我们前面收到消息头的数据  那么接下来我们要接收的登录消息的数据了  我们第二个参数要加上消息头的地址 就可以从那个位置开始接收数据了  
 		//第三个数据 我们接收的数据长度要减去消息头的长度   header->dataLength是总的长度 sizeof(DataHeader)消息头的长度
-		 //z这个没理解 指针哈 这边如果szRecv改变的话那么 header也会跟着改的
-		recv(clientSock, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
+		 //z这个没理解 指针哈 这边如果szRecv改变的话那么 header也会跟着改的  这个没用 放着理解
+	//	recv(clientSock, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
 
-		 OnNetMsg(header);
-
-		 return 0;
+		
 
 	 }
 	 /*响应网络消息*/
@@ -194,6 +231,16 @@ public:
 			 printf("<socket=%d>收到服务端消息：CMD_NEW_USER_JOIN,数据长度：%d\n", _sock, userJoin->dataLength);
 		 }
 		 break;
+		 case  CMD_ERROR:
+		 {
+
+			 printf("<socket=%d>收到服务端消息：CMD_ERROR,数据长度：%d\n", _sock, header->dataLength);
+		 }
+		 break;
+		 default:
+			 //未知消息
+			 printf("<socket=%d>收到未定义消息 数据长度：%d \n", _sock, header->dataLength);
+			 break;
 		 }
 	 }
 	 //发送数据

@@ -35,6 +35,7 @@ struct LoginResult :public DataHeader
 		result = 1;
 	}
 	int result;
+	char data[1024];
 };
 //µÇ³ö
 struct LoginOut :public DataHeader

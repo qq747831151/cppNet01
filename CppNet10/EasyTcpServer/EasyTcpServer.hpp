@@ -173,6 +173,7 @@ public:
 
 	}
 	//处理网络消息
+	int nCount = 0;
 	bool OnRun()
 	{
 		if (IsRun())
@@ -201,11 +202,12 @@ public:
 				}
 			}
 			struct timeval tm;
-			tm.tv_sec = 0;
-			tm.tv_usec = 1;
+			tm.tv_sec = 1;
+			tm.tv_usec = 0;
 			//nfds 是一个整数值 是指fd_set集合中所有的描述符socket 的范围,而不是数量,
 			//既是所有文件描述符最大值+1在windows无所谓 在linux是这样的
 			int ret = select(maxSock, &fd_read, &fd_write, &fd_exp, &tm);
+			//	printf("select ret=%d  count=%d\n", ret, nCount++);
 			if (ret < 0)
 			{
 				printf("客户端已退出,任务结束\n");
@@ -249,23 +251,25 @@ public:
 		return _sock != INVALID_SOCKET;
 	}
 
+	//缓冲区
+	char szRecv[1024] = {};
 	//接收数据 处理粘包 拆分包
 	int RecvData(SOCKET clienSock)
 	{
-		//缓冲区
-		char szRecv[1024] = {};
+		
 		//5.接收客户端请求数据
 		//数据存到szRecv中  第三个参数可接收数据的最大长度
-		int nlen = recv(clienSock, szRecv, sizeof(DataHeader), 0);//返回值是接收的长度  revcz在mac返回值是long 建议强转int
-		DataHeader* header = (DataHeader*)szRecv;
+		int nlen = recv(clienSock, szRecv, 1024, 0);//返回值是接收的长度  revcz在mac返回值是long 建议强转int
 		if (nlen <= 0)
 		{
 			printf("客户端<Socket%d>已退出,任务结束\n", clienSock);
 			return -1;
 		}
-
+		LoginResult loginResult;
+		SendData(&loginResult, clienSock);
+		/*DataHeader* header = (DataHeader*)szRecv;
 		recv(clienSock, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
-		OnNetMsg(header, clienSock);
+		OnNetMsg(header, clienSock);*/
 		return 1;
 
 
