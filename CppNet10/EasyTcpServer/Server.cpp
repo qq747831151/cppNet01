@@ -9,17 +9,38 @@
 #include "EasyTcpServer.hpp"
 
 #include <vector>
+#include <thread>
 std::vector<SOCKET> g_clients;
-
+bool g_exit = true;
+void cmdThread()
+{
+	while (true)
+	{
+		char szBuf[256];
+		scanf("%s", szBuf);
+		if (strcmp(szBuf,"exit")==0)
+		{
+			g_exit = false;
+			printf("退出cmdThread\n");
+			break;
+		}
+		else
+		{
+			printf("不支持命令\n");
+		}
+	}
+}
 
 
 int main()
 {
 	EasyTcpServer server;
 	server.InitSocket();
-	server.Bind(nullptr,4567);
+	server.Bind(4568);
 	server.Listen(5);
-	while (server.IsRun())
+	std::thread t1(cmdThread);
+	t1.detach();//线程分离
+	while (g_exit)
 	{
 		server.OnRun();
 	}

@@ -2,7 +2,7 @@
 #ifndef _EasyTcpClient_Hpp_
 #pragma once
 #define  _EasyTcpClient_Hpp_
-#if _WIN32
+#ifdef _WIN32
 
 #define  WIN32_LEAN_AND_MEAN  //不影响 windows.h 和 WinSock2.h 前后顺序 
 #define _WINSOCK_DEPRECATED_NO_WARNINGS //这个用于 inet_ntoa   可以在右击项目属性 C/C++ 预处理里面 预处理定义添加
@@ -43,12 +43,12 @@ public:
 	//当一个类有子类时，该类的析构函数必须是虚函数，原因：会有资源释放不完全的情况 不然子类资源不会释放
 	 virtual~EasyTcpClient()
 	{
-
+		 Close();
 	}
 	 //初始化
 	 void InitSocket()
 	 {
-#if _WIN32
+#ifdef _WIN32
 		 /*启动socket网络环境 2.x环境*/
 		 WORD ver = MAKEWORD(2, 2);//版本号
 		 WSADATA dat;
@@ -59,6 +59,7 @@ public:
 		 if (_sock!=INVALID_SOCKET)
 		 {
 			 printf("<socket=%d>关闭之前的旧链接\n", _sock);
+			 Close();
 		 }
 		  _sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		 if (_sock == INVALID_SOCKET)
@@ -71,19 +72,19 @@ public:
 		 }
 	 }
 
-	 int Connect(const char *ip,unsigned short port )
+	 int Connect(const char *ip,unsigned  int port )
 	 {
 		 //2.连接服务器
 		 sockaddr_in _sin = {};
 		 _sin.sin_family = AF_INET;
 		 _sin.sin_port = htons(port);
-#if _WIN32
+#ifdef _WIN32
 		 _sin.sin_addr.S_un.S_addr = inet_addr(ip);
 #else
 		 inet_pton(AF_INET, ip, &_sin.sin_addr.s_addr);
 #endif
-
-		 int ret = connect(_sock, (sockaddr*)&_sin, sizeof(_sin));
+		 printf("<socket=%d>正在连接服务器<%s:%d>...\n", _sock, ip, port);
+		 int ret = connect(_sock, (sockaddr*)&_sin, sizeof(sockaddr_in));
 		 if (ret == -1)
 		 {
 			 printf("ERROR,<socket=%d><port=%d>连接服务器connect失败...\n",_sock,port);
@@ -99,13 +100,13 @@ public:
 		 if (_sock!=INVALID_SOCKET)
 		 {
 			 //关闭套接字
-#if _WIN32
+#ifdef _WIN32
 //7.关闭套接字
 			 closesocket(_sock);//这个是在windows下面的关闭函数
 			 //清除windows socket环境
 			 WSACleanup();
 #else
-			 close(sock);
+			 close(_sock);
 #endif
 			 _sock = INVALID_SOCKET;
 		 }
@@ -147,9 +148,12 @@ public:
 	 {
 		 return _sock != INVALID_SOCKET;
 	 }
-
+#ifndef  RECV_BUFF_SIZE
 	 //缓冲区区域最小单元大小
-#define  RECV_BUFF_SIZE 10240
+     #define  RECV_BUFF_SIZE 10240
+#endif // ! RECV_BUFF_SIZE
+
+
 	 //接收缓冲区
 	 char szRecv[RECV_BUFF_SIZE] = {};
 	 //第二缓冲区  消息缓冲区
@@ -248,6 +252,7 @@ public:
 	 {
 		 if (IsRun()&&header)
 		 {
+			
 			 return send(_sock, (const char *)header, header->dataLength, 0);
 		 }
 		 return SOCKET_ERROR;
@@ -259,3 +264,5 @@ private:
 
 
 #endif // !1
+
+

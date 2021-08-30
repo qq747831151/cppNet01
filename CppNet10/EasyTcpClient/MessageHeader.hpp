@@ -1,4 +1,4 @@
-#pragma once
+
 enum CMD
 {
 	CMD_LOGIN,

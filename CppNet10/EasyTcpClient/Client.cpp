@@ -10,8 +10,9 @@
 
 #include <stdio.h>
 #include <thread>
-//这个负责发送数据
-void cmdThread(EasyTcpClient*client)
+bool g_Exit = true;//线程退出
+//这个负责发送数据  参数 EasyTcpClient*client
+void cmdThread()
 {
 	while (true)
 	{
@@ -22,10 +23,11 @@ void cmdThread(EasyTcpClient*client)
 		if (0 == strcmp(buf, "exit"))
 		{
 			printf("收到exit命令,任务结束");
-			client->Close();
+			//client->Close();
+			g_Exit = false;
 			break;
 		}
-		else if(0 == strcmp(buf, "login"))
+		/*else if(0 == strcmp(buf, "login"))
 		{
 			Login login;
 			strcpy(login.userName, "sfl");
@@ -37,7 +39,7 @@ void cmdThread(EasyTcpClient*client)
 			LoginOut loginOut;
 			strcpy(loginOut.userName, "sfl");
 			client->SendData(&loginOut);
-		}
+		}*/
 		
 		//Sleep(1000);
 	}
@@ -45,27 +47,51 @@ void cmdThread(EasyTcpClient*client)
 }
 int main()
 {
-
+	const int Count = 1;
+	EasyTcpClient* Clients[Count];
+	for (int i = 0; i < Count; i++)
+	{
+		Clients[i] = new EasyTcpClient();
+		
+	}
+	for (int i = 0; i < Count; i++)
+	{
+		Clients[i]->InitSocket();
+		Clients[i]->Connect("192.168.17.1", 4568);
+	}
 	
-	EasyTcpClient client1;
-	client1.InitSocket();
-	client1.Connect("192.168.17.1",4567);
 	
 	//启动线程
-	std::thread t1(cmdThread,&client1);
+	//std::thread t1(cmdThread,&client1);
+	//t1.detach();//线程分离
+	// 
+	std::thread t1(cmdThread);
 	t1.detach();//线程分离
 
 	Login login;
 	strcpy(login.userName, "sfl");
 	strcpy(login.passWord, "123");
 
-	while (client1.IsRun())
+	while (g_Exit)
 	{
-		client1.OnRun();
-		client1.SendData(&login);
+		for (int i = 0; i < Count; i++)
+		{
+			Clients[i]->SendData(&login);
+			Clients[i]->OnRun();
+		}
 	}
+	for (int i = 0; i < Count; i++)
+	{
+		
+		Clients[i]->Close();
+	}
+	//while (client1.IsRun())
+	//{
+	//	client1.OnRun();
+	//	client1.SendData(&login);
+	//}
 
-	client1.Close();
+	//client1.Close();
 	printf("客户端已退出,任务结束\n");
 	getchar();
 	return 0;
