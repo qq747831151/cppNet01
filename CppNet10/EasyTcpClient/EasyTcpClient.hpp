@@ -68,7 +68,7 @@ public:
 		 }
 		 else
 		 {
-			 printf("TURE,建立socket成功.....\n");
+		//	 printf("TURE,建立socket成功.....\n");
 		 }
 	 }
 
@@ -83,7 +83,7 @@ public:
 #else
 		 inet_pton(AF_INET, ip, &_sin.sin_addr.s_addr);
 #endif
-		 printf("<socket=%d>正在连接服务器<%s:%d>...\n", _sock, ip, port);
+		// printf("<socket=%d>正在连接服务器<%s:%d>...\n", _sock, ip, port);
 		 int ret = connect(_sock, (sockaddr*)&_sin, sizeof(sockaddr_in));
 		 if (ret == -1)
 		 {
@@ -91,7 +91,7 @@ public:
 		 }
 		 else
 		 {
-			 printf("TURE,<socket=%d> <port=%d>连接服务器connect成功...\n",_sock,port);
+			// printf("TURE,<socket=%d> <port=%d>连接服务器connect成功...\n",_sock,port);
 		 }
 		 return ret;
 	 }

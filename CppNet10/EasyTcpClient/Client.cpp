@@ -47,17 +47,28 @@ void cmdThread()
 }
 int main()
 {
-	const int Count = 1;
+	const int Count = 1000;
 	EasyTcpClient* Clients[Count];
 	for (int i = 0; i < Count; i++)
 	{
+		if (!g_Exit)
+		{
+
+			return 0;
+		}
 		Clients[i] = new EasyTcpClient();
 		
 	}
 	for (int i = 0; i < Count; i++)
 	{
+		if (!g_Exit)
+		{
+
+			return 0;
+		}
 		Clients[i]->InitSocket();
 		Clients[i]->Connect("192.168.17.1", 4568);
+		printf("Connect =%d\n", i);
 	}
 	
 	
@@ -77,7 +88,7 @@ int main()
 		for (int i = 0; i < Count; i++)
 		{
 			Clients[i]->SendData(&login);
-			Clients[i]->OnRun();
+			//Clients[i]->OnRun();
 		}
 	}
 	for (int i = 0; i < Count; i++)

@@ -4,7 +4,7 @@
 #endif // !_EasyTcpServer_Hpp_
 
 #ifdef _WIN32
-
+#define  FD_SIZE 4024
 #define  WIN32_LEAN_AND_MEAN  //不影响 windows.h 和 WinSock2.h 前后顺序 
 #define _WINSOCK_DEPRECATED_NO_WARNINGS //这个用于 inet_ntoa   可以在右击项目属性 C/C++ 预处理里面 预处理定义添加
 #include <WinSock2.h>
@@ -27,6 +27,7 @@
 #include <thread>
 #include <vector>
 #include "MessageHeader.hpp"
+#include "CELLTimestamp.hpp"
 #ifndef RECV_BUFF_SIZE
 //缓冲区区域最小单元大小
 #define  RECV_BUFF_SIZE 10240
@@ -70,6 +71,8 @@ class EasyTcpServer
 private:
 	SOCKET _sock;
 	std::vector<ClientSocket*> g_clients;
+	CELLTimestamp _time;
+	int _recvCount = 0;
 public:
 	EasyTcpServer()
 	{
@@ -179,7 +182,7 @@ public:
 			//如果有新客户端加入,就向其他现有的客户端发送消息
 		//	LoginNewUser newUser;
 			g_clients.push_back(new ClientSocket(clientSocket));
-			printf("新客户端加入：socket=%d IP=%s\n", (int)clientSocket, inet_ntoa(addClin.sin_addr));
+			//printf("新客户端加入：socket=%d IP=%s\n", (int)clientSocket, inet_ntoa(addClin.sin_addr));
 
 		}
 		return clientSocket;
@@ -263,6 +266,7 @@ public:
 			{
 				FD_CLR(_sock, &fd_read);
 				Accept();
+				return true;
 			}
 
 			//通信 有客户端发消息过来
@@ -345,24 +349,32 @@ public:
 	//响应网络消息
 	virtual void OnNetMsg(DataHeader* header, SOCKET clienSocket)
 	{
+		_recvCount++;
+		auto t1 = _time.getElapsedSecond();
+		if (t1>=1.0)
+		{
+			printf("time=%lf socket<%d> RecvCount=%d\n", t1, _sock, _recvCount);
+			_recvCount = 0;
+			_time.update();
+		}
 		switch (header->cmd)
 		{
 		case  CMD_LOGIN:
 		{
 			Login* login = (Login*)&header;
-			printf("收到客户端<Socket=%d>请求：CMD_LOGIN,数据长度：%d,userName=%s PassWord=%s\n", clienSocket, login->dataLength, login->userName, login->passWord);
+		//	printf("收到客户端<Socket=%d>请求：CMD_LOGIN,数据长度：%d,userName=%s PassWord=%s\n", clienSocket, login->dataLength, login->userName, login->passWord);
 			//忽略 判断用户密码是否正确
-			LoginResult loginResult;
-			SendData(&loginResult, clienSocket);
+			//LoginResult loginResult;
+			//SendData(&loginResult, clienSocket);
 		}
 		break;
 		case  CMD_LOGINOUT:
 		{
 			LoginOut* loginOut = (LoginOut*)&header;
-			printf("收到命令:%d 数据长度:%d\n", header->cmd, header->dataLength);
+			//printf("收到命令:%d 数据长度:%d\n", header->cmd, header->dataLength);
 			//忽略 判断用户密码是否正确
-			LoginOutResult loginOutResult;
-			SendData(&loginOutResult, clienSocket);
+			//LoginOutResult loginOutResult;
+			//SendData(&loginOutResult, clienSocket);
 		}
 		break;
 		default:
