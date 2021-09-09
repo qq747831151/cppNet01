@@ -182,7 +182,7 @@ public:
 			//如果有新客户端加入,就向其他现有的客户端发送消息
 		//	LoginNewUser newUser;
 			g_clients.push_back(new ClientSocket(clientSocket));
-			//printf("新客户端加入：socket=%d IP=%s\n", (int)clientSocket, inet_ntoa(addClin.sin_addr));
+			printf("新客户端加入：socket=%d IP=%s\n", (int)clientSocket, inet_ntoa(addClin.sin_addr));
 
 		}
 		return clientSocket;

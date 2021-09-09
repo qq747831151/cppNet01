@@ -68,7 +68,7 @@ public:
 		 }
 		 else
 		 {
-		//	 printf("TURE,建立socket成功.....\n");
+			 printf("TURE,建立socket成功.....\n");
 		 }
 	 }
 
@@ -91,7 +91,7 @@ public:
 		 }
 		 else
 		 {
-			// printf("TURE,<socket=%d> <port=%d>连接服务器connect成功...\n",_sock,port);
+			 printf("TURE,<socket=%d> <port=%d>连接服务器connect成功...\n",_sock,port);
 		 }
 		 return ret;
 	 }
